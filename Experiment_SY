@@ -1,0 +1,135 @@
+function result=Experiment_SY(type)
+logfile=fopen('logofexp.txt','w');
+
+whichScreen = 0;
+[window, rect] = Screen(whichScreen, 'OpenWindow', 1);
+black = BlackIndex(window);
+white=WhiteIndex(window);
+Screen(window, 'FillRect', black);
+Screen(window, 'Flip');
+
+%Instruction Screen for AntiSac
+antiscreen=imread('anti.jpg', 'JPG');
+
+%Instruction Screen for ProSac
+proscreen=imread('pro.jpg', 'JPG');
+
+%Instruction Screen for Break Time
+breakscreen=imread('break.jpg', 'JPG');
+
+%Fixation Cross
+[X,Y] = RectCenter(rect);
+FixCross = [X-1,Y-40,X+1,Y+40;X-40,Y-1,X+40,Y+1];
+
+%Target Creation Ellipse
+set(whichScreen,'units','pixels'); 
+Pix_SS = get(whichScreen,'screensize');
+set(whichScreen,'units','centimeters');
+cm_SS = get(whichScreen,'screensize');
+
+%number of pix
+h = Pix_SS(3);
+v = Pix_SS(4);
+
+res = cm_SS./Pix_SS;
+%cm/pix
+hsize = res(3);
+vsize = res(4);
+
+%%Make the stimulus
+
+%degrees to pixels 
+L=64; %cm
+deg=11; %angle between center and ellipse center
+
+npix=angle2pix(L,hsize,deg);
+
+%Target Creation
+
+eheightdeg=6;
+ewidthdeg=3.3;
+
+eheight=angle2pix(L,vsize,eheightdeg);
+ewidth=angle2pix(L,hsize,ewidthdeg);
+
+X_e=X+npix;
+target_right=[X_e-round(ewidth/2),Y-round(eheight/2),X_e+round(ewidth/2),Y+round(eheight/2)];
+X_e=X-npix;
+target_left=[X_e-round(ewidth/2),Y-round(eheight/2),X_e+round(ewidth/2),Y+round(eheight/2)];
+
+
+%ABBA Design
+%1=AB where A is ProSac and B is AntiSac 
+%2=BA where A is ProSac and B is AntiSac
+
+%type=1;
+
+%Block Design 5X
+
+for block=[1,2,3,4,5]
+   
+    for chunk=[1:20]
+        if (type==1) && (mod(chunk,2)==1)
+            img=proscreen;
+        elseif (type==1) && (mod(chunk,2)==0)
+            img=antiscreen;
+        elseif (type==2) && (mod(chunk,2)==1)
+            img=antiscreen;
+        elseif (type==2) && (mod(chunk,2)==0)
+            img=proscreen;
+        end
+        
+        
+            
+            textureIndex=Screen('MakeTexture', window, double(img));
+            Screen('DrawTexture', window, textureIndex);
+            Screen(window, 'Flip');
+            KbWait;
+            
+            for trial=[1:20]
+                if randi(1000)<=500 
+                    target=target_right;
+                    target_type='right';
+                elseif randi(1000)>500
+                    target=target_left;
+                    target_type='left';
+                end
+                
+                %Write to log so we can see which trial type was presented
+                %str=strcat('block= ',num2str(block), ', chunk= ',num2str(chunk),' , trial=',num2str(trial), ', target=',target_type);
+                fprintf(logfile, 'block=%u, chunk=%u, trial=%u, target=%s\n', block,chunk,trial,target_type);
+                
+                %Fixation Cross
+                
+                Screen('FillRect', window, [255,255,255], FixCross');
+                Screen(window, 'Flip');
+                WaitSecs(2.6)
+                
+                %Blank Screen
+
+                Screen(window, 'FillRect', black);
+                Screen(window, 'Flip');
+                WaitSecs(.2)
+                
+                %Targets
+                
+                %Screen('FillOval', window, white, target);
+                %Screen(window, 'Flip');
+                %WaitSecs(.6)
+            end
+            
+    end 
+    
+    img=breakscreen;
+    textureIndex=Screen('MakeTexture', window, double(img));
+            Screen('DrawTexture', window, textureIndex);
+            Screen(window, 'Flip');
+            KbWait;
+    
+end
+
+
+  %KbWait;
+Screen('CloseAll');
+
+end
